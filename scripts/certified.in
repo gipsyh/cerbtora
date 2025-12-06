@@ -39,11 +39,11 @@ res=${PIPESTATUS[0]}
 echo $(basename "$0"): model checker exit code $res
 [ $res -eq 124 ] && echo $(basename "$0"): model checker timeout && exit 0
 
-if grep -q "^sat$" "$LOG"; then
+if grep -qi "^sat$" "$LOG"; then
     echo $(basename "$0"): Checking SAT
     "$check_sat" "$MODEL" "$SAT"
     res=$?
-elif grep -q "^unsat$" "$LOG"; then
+elif grep -qi "^unsat$" "$LOG"; then
     echo $(basename "$0"): Checking UNSAT
     "$check_unsat" $SEQUENTIAL "$MODEL" "$UNSAT"
     res=$?
