@@ -7,17 +7,31 @@ for i in certified generate; do
     [ ! -x "${!i}" ] && echo "$(basename "$0"): missing executable $i (${!i})" >&2 && exit 1
 done
 "$certified" >/dev/null || exit
-[ $# -lt 1 ] && echo "usage: $(basename "$0") <model checker> [<seed>]" && exit 0
+[ $# -lt 1 ] && echo "usage: $(basename "$0") <model checker> [--seed=<seed>] [<model checker args>]" && exit 0
 MC=$(realpath $1)
-[ $# -gt 1 ] && seed=$2
+shift
+SEED=""
+MC_ARGS=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --seed=*)
+            SEED="${1#*=}"
+            shift
+            ;;
+        *)
+            MC_ARGS="$MC_ARGS $1"
+            shift
+            ;;
+    esac
+done
 mkdir -p ${TMPDIR:-/tmp}/froleyks-cerbtora
 TMP=$(mktemp -d "${TMPDIR:-/tmp}"/froleyks-cerbtora/"$(basename "$0")"-XXXXXXXX)
 trap 'rm -rf ${TMP}; exit' EXIT HUP INT QUIT TERM
 
 mod="$TMP"/mod.btor2
 rm -f "$mod"
-"$generate" "$seed" > "$mod"
-"$certified" --mc_time=60 "$MC" "$mod" && exit 0
+"$generate" "$SEED" > "$mod"
+"$certified" --mc_time=60 "$MC" "$mod" $MC_ARGS && exit 0
 res=$?
 seed=$(grep seed "$mod" | awk '{print $6}')
 echo bug: $seed
