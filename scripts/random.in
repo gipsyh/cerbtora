@@ -31,7 +31,7 @@ trap 'rm -rf ${TMP}; exit' EXIT HUP INT QUIT TERM
 mod="$TMP"/mod.btor2
 rm -f "$mod"
 "$generate" "$SEED" > "$mod"
-"$certified" --mc_time=60 "$MC" "$mod" $MC_ARGS && exit 0
+"$certified" --mc_time=5 "$MC" "$mod" $MC_ARGS && exit 0
 res=$?
 seed=$(grep seed "$mod" | awk '{print $6}')
 echo bug: $seed
