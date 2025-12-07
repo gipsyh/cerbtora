@@ -23,9 +23,15 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
-mkdir -p ${TMPDIR:-/tmp}/froleyks-cerbtora
-TMP=$(mktemp -d "${TMPDIR:-/tmp}"/froleyks-cerbtora/$(basename "$0")-XXXXXXXX)
-trap 'rm -rf ${TMP}; exit' EXIT HUP INT QUIT TERM
+if [ -n "$CERBTORA_WORKDIR" ]; then
+    TMP="$CERBTORA_WORKDIR"
+    mkdir -p "$TMP"
+    trap 'exit' EXIT HUP INT QUIT TERM
+else
+    mkdir -p ${TMPDIR:-/tmp}/froleyks-cerbtora
+    TMP=$(mktemp -d "${TMPDIR:-/tmp}"/froleyks-cerbtora/$(basename "$0")-XXXXXXXX)
+    trap 'rm -rf ${TMP}; exit' EXIT HUP INT QUIT TERM
+fi
 
 log="$TMP/log"
 out="$TMP/out"
@@ -38,6 +44,7 @@ failed=0
 total_runs=0
 while true; do
     if [ "$COUNT" -ge 0 ] && [ "$total_runs" -ge "$COUNT" ]; then
+        echo fuzzed: $i $safe $unsafe $tout $failed >>"$log"
         exit 0
     fi
     "$random" "$MC" $MC_ARGS >"$out"
@@ -58,5 +65,5 @@ while true; do
         continue
     fi
     cat "$out"
-    (((failed += 1) >= FAILURES)) && exit 0
+    (((failed += 1) >= FAILURES)) && echo fuzzed: $i $safe $unsafe $tout $failed >>"$log" && exit 0
 done
