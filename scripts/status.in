@@ -2,7 +2,7 @@
 
 while true; do
     s=(0 0 0 0 0)
-    logs=$(find "${TMPDIR:-/tmp}"/froleyks-cerbtora/fuzz-* -name log 2>/dev/null)
+    logs=$(find "$CERBTORA_WORKDIR" -name log 2>/dev/null)
     for l in $logs; do
         line=$(grep '^fuzzed:' "$l" 2>/dev/null | tail -n 1)
         if [ -n "$line" ]; then
