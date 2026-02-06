@@ -29,7 +29,8 @@ if(TOOLS)
     random
     fuzz
     fuzzer
-    status)
+    status
+    limit)
 else()
   set(BUILD_TOOLS OFF CACHE BOOL "Build btor2parser tools")
 endif()
