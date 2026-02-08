@@ -3,7 +3,9 @@ RUN apk add --no-cache \
       bash coreutils \
       build-base cmake \
       meson ninja \
-      pkgconf m4 gmp-dev mpfr-dev gmp-static \
+      pkgconf m4 \
+      gmp-dev mpfr-dev gmp-static \
+      linux-headers \
       git ca-certificates
 
 WORKDIR /work
