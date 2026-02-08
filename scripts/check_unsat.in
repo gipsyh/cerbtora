@@ -8,22 +8,25 @@ cerbtora="$bin/cerbtora"
 bitwuzla="$bin/bitwuzla"
 
 log() { echo "$(basename "$0"): $*"; }
-die() { log "Error: $*" >&2; exit 1; }
+die() {
+    log "Error: $*" >&2
+    exit 1
+}
 
 # Normalize SEQUENTIAL (accepts true/false/1/0/yes/no)
 case "${SEQUENTIAL}" in
-  1|true|TRUE|yes|YES) SEQUENTIAL=true ;;
-  0|false|FALSE|no|NO|"") SEQUENTIAL=false ;;
-  *) die "invalid SEQUENTIAL=${SEQUENTIAL} (use true/false/1/0)" ;;
+1 | true | TRUE | yes | YES) SEQUENTIAL=true ;;
+0 | false | FALSE | no | NO | "") SEQUENTIAL=false ;;
+*) die "invalid SEQUENTIAL=${SEQUENTIAL} (use true/false/1/0)" ;;
 esac
 
 for i in limit cerbtora bitwuzla; do
-  [ -x "${!i}" ] || die "missing executable $i (${!i})"
+    [ -x "${!i}" ] || die "missing executable $i (${!i})"
 done
 
 [ $# -lt 2 ] && {
-  echo "usage: $(basename "$0") [--seq] <model> <safe witness>"
-  exit 0
+    echo "usage: $(basename "$0") [--seq] <model> <safe witness>"
+    exit 0
 }
 
 mkdir -p "${TMPDIR:-/tmp}/froleyks-cerbtora"
@@ -32,19 +35,19 @@ mkdir -p "${TMPDIR:-/tmp}/froleyks-cerbtora"
 # if more than 2 args are given, use a non-temporary directory and do not auto-clean.
 TMP_CREATED=false
 if [ $# -gt 2 ]; then
-  TMP="$(realpath "$bin/..")" || die "realpath failed"
+    TMP="$(realpath "$bin/..")" || die "realpath failed"
 else
-  TMP="$(mktemp -d "${TMPDIR:-/tmp}/froleyks-cerbtora/$(basename "$0")-XXXXXXXX")" || die "mktemp failed"
-  TMP_CREATED=true
+    TMP="$(mktemp -d "${TMPDIR:-/tmp}/froleyks-cerbtora/$(basename "$0")-XXXXXXXX")" || die "mktemp failed"
+    TMP_CREATED=true
 fi
 
 main_PID=$BASHPID
 cleanup() {
-  st=$?
-  if [[ $BASHPID -eq $main_PID && $TMP_CREATED == true ]]; then
-    rm -rf -- "$TMP"
-  fi
-  exit "$st"
+    st=$?
+    if [[ $BASHPID -eq $main_PID && $TMP_CREATED == true ]]; then
+        rm -rf -- "$TMP"
+    fi
+    exit "$st"
 }
 trap cleanup EXIT HUP INT QUIT TERM
 
@@ -57,15 +60,15 @@ model="$1"
 witness="$2"
 
 for f in model witness; do
-  path="${!f}"
-  [ -f "$path" ] || die "missing file $path"
-  log "$f $path $(wc -l <"$path") lines $(wc -c <"$path") bytes $(head -n 1 "$path")"
+    path="${!f}"
+    [ -f "$path" ] || die "missing file $path"
+    log "size $f $path $(wc -l <"$path") lines $(wc -c <"$path") bytes"
 done
 
 CHECKS=(reset transition property base step)
 btors=()
 for check in "${CHECKS[@]}"; do
-  btors+=("${TMP}/${check}.btor2")
+    btors+=("${TMP}/${check}.btor2")
 done
 
 log "Generating BTOR2 checks: ${CHECKS[*]}"
@@ -77,47 +80,48 @@ log "t_cerbtora: $t_cerbtora"
 
 # Log generated BTOR2 files
 for check in "${CHECKS[@]}"; do
-  btor="${TMP}/${check}.btor2"
-  [ -f "$btor" ] || die "expected output file missing: $btor"
-  log "btor2_$check $btor $(wc -l <"$btor") lines $(wc -c <"$btor") bytes $(head -n 1 "$btor")"
+    btor="${TMP}/${check}.btor2"
+    [ -f "$btor" ] || die "expected output file missing: $btor"
+    log "size btor2_$check $btor $(wc -l <"$btor") lines $(wc -c <"$btor") bytes"
 done
 
 # Parse BITWUZLA_OPTIONS into an argv array (so multiple flags work)
 bitwuzla_opts=()
 if [[ -n "$BITWUZLA_OPTIONS" ]]; then
-  # shellcheck disable=SC2206
-  bitwuzla_opts=($BITWUZLA_OPTIONS)
+    # shellcheck disable=SC2206
+    bitwuzla_opts=($BITWUZLA_OPTIONS)
 fi
 
 smt() {
-  local name="$1"
-  local btor="${TMP}/${name}.btor2"
-  echo "Checking $name"
+    local name="$1"
+    local btor="${TMP}/${name}.btor2"
+    echo "Checking $name"
 
-  local t r st
-  t="$(date +%s%N)"
-  r="$(
-    "$limit" "$(basename "$bitwuzla")-$name" \
-      "$bitwuzla" "${bitwuzla_opts[@]}" "$btor" 2>&1
-  )"
-  st=$?
+    local t r st
+    t="$(date +%s%N)"
+    r="$(
+        "$limit" "$name" \
+            "$bitwuzla" "${bitwuzla_opts[@]}" "$btor" 2>&1 |
+            tee /dev/stdout
+    )"
+    st=${PIPESTATUS[0]}
 
-  if [[ $st -ne 0 ]]; then
-    log "Error: bitwuzla failed on $name (exit code $st)" >&2
-    echo "$r" >&2
-    return 1
-  fi
+    if [[ $st -ne 0 ]]; then
+        log "Error: bitwuzla failed on $name (exit code $st)" >&2
+        echo "$r" >&2
+        return 1
+    fi
 
-  if [[ ! "$r" =~ Bad\ property\ .*unsatisfiable\. ]]; then
-    log "Error: $name check failed" >&2
-    echo "$r" >&2
-    return 1
-  fi
+    if [[ ! "$r" =~ Bad\ property\ .*unsatisfiable\. ]]; then
+        log "Error: $name check failed" >&2
+        echo "$r" >&2
+        return 1
+    fi
 
-  t="$(($(date +%s%N) - t))"
-  t="$(printf '%d.%09d' "$((t / 1000000000))" "$((t % 1000000000))")"
-  log "t_$name: $t"
-  return 0
+    t="$(($(date +%s%N) - t))"
+    t="$(printf '%d.%09d' "$((t / 1000000000))" "$((t % 1000000000))")"
+    log "t_$name: $t"
+    return 0
 }
 
 PIDS=()
@@ -125,17 +129,20 @@ res=0
 t_total="$(date +%s%N)"
 
 if $SEQUENTIAL; then
-  for name in "${CHECKS[@]}"; do
-    smt "$name" || { res=1; break; }
-  done
+    for name in "${CHECKS[@]}"; do
+        smt "$name" || {
+            res=1
+            break
+        }
+    done
 else
-  for name in "${CHECKS[@]}"; do
-    (smt "$name") &
-    PIDS+=($!)
-  done
-  for pid in "${PIDS[@]}"; do
-    wait "$pid" || res=1
-  done
+    for name in "${CHECKS[@]}"; do
+        (smt "$name") &
+        PIDS+=($!)
+    done
+    for pid in "${PIDS[@]}"; do
+        wait "$pid" || res=1
+    done
 fi
 
 t_total="$(($(date +%s%N) - t_total))"
@@ -143,8 +150,8 @@ t_total="$(printf '%d.%09d' "$((t_total / 1000000000))" "$((t_total % 1000000000
 log "t_total: $t_total"
 
 if [[ $res -ne 0 ]]; then
-  log "Certificate check failed."
-  exit 1
+    log "Certificate check failed."
+    exit 1
 fi
 
 log "Certificate check passed."

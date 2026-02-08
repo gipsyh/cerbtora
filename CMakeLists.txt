@@ -19,6 +19,7 @@ install(TARGETS cerbtora)
 if(TOOLS)
   include(dep/fuzzbtor2/fuzzbtor2_bin.cmake)
   include(dep/bitwuzla/bitwuzla_bin.cmake)
+  include(dep/runlim/runlim_bin.cmake)
   set(BUILD_TOOLS ON)
   add_scripts(
     check_sat
